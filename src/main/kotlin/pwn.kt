@@ -67,7 +67,7 @@ class Pwnr(url: String) {
         return true
       this.captured[desc] = matches?.map { match: MatchResult ->
         match.groups?.get(1)?.value
-      }?.toList()
+      }?.toList()?.distinct()
       return true
     })
       return false
@@ -108,6 +108,6 @@ fun main(vararg args: String) {
   var pwnr = Pwnr(url)
   pwnr.pwn()
   pwnr.captured.forEach { k: String, v: List<String?>? ->
-    println("captured $k: $v")
+    println("captured $k: ${v?.joinToString(", ")}")
   }
 }
