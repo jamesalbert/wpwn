@@ -11,10 +11,12 @@ class Pwnr(url: String) {
   val url: String
   val logger: KLogger
   val config: JsonObject
+  val captured: MutableMap<String, List<String?>?>
 
   init {
     this.url = url
     this.config = Parser().parse("config/defaults.json") as JsonObject
+    this.captured = mutableMapOf()
     this.logger = KotlinLogging.logger {}
     this.logger.info("prepare to pwn: $url")
     println("""
@@ -26,7 +28,7 @@ class Pwnr(url: String) {
     |______/|___|         |______/|___|    |___|
     :                     :
     :                     :
-    
+
     Author: James Albert (jamesalbert)
     Message to the world: hello
     """)
@@ -44,11 +46,30 @@ class Pwnr(url: String) {
   fun looksNormal(it: JsonObject, resp: Response): Boolean {
     val mustHaveText: Boolean
     val substrings: JsonArray<String>?
+    val capture: JsonArray<String>?
+    val desc: String
     mustHaveText = it.boolean("mustHaveText") ?: false
     substrings = it.array("contains") ?: JsonArray()
+    capture = it.array("capture") ?: JsonArray()
+    desc = it.string("desc")!!
     if (mustHaveText and resp.text.isEmpty())
       return false
-    if (!substrings.any { s -> resp.text.contains(s) })
+    if (substrings.isNotEmpty() and !substrings.any { s ->
+      resp.text.contains(s)
+    })
+      return false
+    if (capture.isNotEmpty() and !capture.any { c: String ->
+      val regex: Regex = c.toRegex()
+      val matches: Sequence<MatchResult>? = regex.findAll(resp.text)
+      if (matches?.count() == 0)
+        return false
+      if (this.captured.containsKey(desc))
+        return true
+      this.captured[desc] = matches?.map { match: MatchResult ->
+        match.groups?.get(1)?.value
+      }?.toList()
+      return true
+    })
       return false
     if (resp.url.contains("redirect_to"))
       return false
@@ -86,4 +107,7 @@ fun main(vararg args: String) {
   val url: String = args[0]
   var pwnr = Pwnr(url)
   pwnr.pwn()
+  pwnr.captured.forEach { k: String, v: List<String?>? ->
+    println("captured $k: $v")
+  }
 }
