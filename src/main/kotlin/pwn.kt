@@ -38,11 +38,6 @@ class Pwnr(url: String) {
     return get("${this.url}$path")
   }
 
-  fun returnedNormally(it: JsonObject, resp: Response): Boolean {
-    val expectedCode: Int = it.int("statusCode") ?: resp.statusCode
-    return resp.statusCode.equals(expectedCode)
-  }
-
   fun isCaptured(it: JsonObject, resp: Response): Boolean {
     val capture: JsonArray<String>?
     val desc: String
@@ -60,6 +55,11 @@ class Pwnr(url: String) {
       }?.toList()?.distinct()
       return true
     }
+  }
+
+  fun returnedNormally(it: JsonObject, resp: Response): Boolean {
+    val expectedCode: Int = it.int("statusCode") ?: resp.statusCode
+    return resp.statusCode.equals(expectedCode)
   }
 
   fun looksNormal(it: JsonObject, resp: Response): Boolean {
