@@ -26,7 +26,9 @@ class Pwnr(url: String) {
     |______/|___|         |______/|___|    |___|
     :                     :
     :                     :
-
+    
+    Author: James Albert (jamesalbert)
+    Message to the world: hello
     """)
   }
 
