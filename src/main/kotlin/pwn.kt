@@ -18,7 +18,6 @@ class Pwnr(url: String) {
     this.config = Parser().parse("config/defaults.json") as JsonObject
     this.captured = mutableMapOf()
     this.logger = KotlinLogging.logger {}
-    this.logger.info("prepare to pwn: $url")
     println("""
         ___ ._______          ___ .______
     .___    |   |: ____  |.___    |   |:      \
@@ -32,6 +31,7 @@ class Pwnr(url: String) {
     Author: James Albert (jamesalbert)
     Message to the world: hello
     """)
+    this.logger.info("prepare to pwn: $url")
   }
 
   fun request(path: String): Response {
