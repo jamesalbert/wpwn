@@ -43,22 +43,12 @@ class Pwnr(url: String) {
     return resp.statusCode.equals(expectedCode)
   }
 
-  fun looksNormal(it: JsonObject, resp: Response): Boolean {
-    val mustHaveText: Boolean
-    val substrings: JsonArray<String>?
+  fun isCaptured(it: JsonObject, resp: Response): Boolean {
     val capture: JsonArray<String>?
     val desc: String
-    mustHaveText = it.boolean("mustHaveText") ?: false
-    substrings = it.array("contains") ?: JsonArray()
     capture = it.array("capture") ?: JsonArray()
     desc = it.string("desc")!!
-    if (mustHaveText and resp.text.isEmpty())
-      return false
-    if (substrings.isNotEmpty() and !substrings.any { s ->
-      resp.text.contains(s)
-    })
-      return false
-    if (capture.isNotEmpty() and !capture.any { c: String ->
+    return capture.isNotEmpty() and capture.any { c: String ->
       val regex: Regex = c.toRegex()
       val matches: Sequence<MatchResult>? = regex.findAll(resp.text)
       if (matches?.count() == 0)
@@ -66,10 +56,24 @@ class Pwnr(url: String) {
       if (this.captured.containsKey(desc))
         return true
       this.captured[desc] = matches?.map { match: MatchResult ->
-        match.groups?.get(1)?.value
+        match.groups.get(1)?.value
       }?.toList()?.distinct()
       return true
+    }
+  }
+
+  fun looksNormal(it: JsonObject, resp: Response): Boolean {
+    val mustHaveText: Boolean
+    val substrings: JsonArray<String>?
+    mustHaveText = it.boolean("mustHaveText") ?: false
+    substrings = it.array("contains") ?: JsonArray()
+    if (mustHaveText and resp.text.isEmpty())
+      return false
+    if (substrings.isNotEmpty() and !substrings.any { s ->
+      resp.text.contains(s)
     })
+      return false
+    if (!this.isCaptured(it, resp))
       return false
     if (resp.url.contains("redirect_to"))
       return false
