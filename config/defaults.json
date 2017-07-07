@@ -97,46 +97,44 @@
     },
     {
       "name": "wp",
-      "desc": "a version",
+      "desc": "version",
       "statusCode": 200,
-      "contains": [
-        "WordPress"
+      "capture": [
+        "WordPress/(.+?)\""
       ],
-      "mustHaveText": true,
       "extensions": [
         "-links-opml.php"
       ]
     },
     {
       "name": "feed",
-      "desc": "a version",
+      "desc": "version",
       "statusCode": 200,
-      "contains": [
-        "WordPress"
+      "capture": [
+        "version=\"4.7.5\">WordPress",
+        "wordpress.org/\\?v=(.+?)<"
       ],
-      "mustHaveText": true,
       "extensions": [
         "", "/atom", "/rdf"
       ]
     },
     {
       "name": "comments",
-      "desc": "a version",
+      "desc": "version",
       "statusCode": 200,
-      "contains": [
-        "WordPress"
+      "capture": [
+        "wordpress.org/\\?v=(.+?)<"
       ],
-      "mustHaveText": true,
       "extensions": [
         "/feed"
       ]
     },
     {
       "name": "readme",
-      "desc": "a version",
+      "desc": "version",
       "statusCode": 200,
-      "contains": [
-        "WordPress"
+      "capture": [
+        "Version (.+?)"
       ],
       "extensions": [
         ".html"
