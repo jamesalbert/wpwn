@@ -1,0 +1,162 @@
+{
+  "resources": [
+    {
+      "name": "wp-config",
+      "desc": "configuration files",
+      "statusCode": 200,
+      "contains": [
+        "define"
+      ],
+      "mustHaveText": true,
+      "extensions": [
+        ".php", ".php~", ".tar.gz"
+      ],
+      "paths": [
+        "..", "../..", "../../.."
+      ]
+    },
+    {
+      "name": "crossdomain",
+      "desc": "crossdomains",
+      "statusCode": 200,
+      "extensions": [
+        ".xml"
+      ]
+    },
+    {
+      "name": "wp-includes/rss-functions",
+      "desc": "path disclosures",
+      "contains": [
+        "Fatal error"
+      ],
+      "mustHaveText": true,
+      "extensions": [
+        ".php"
+      ]
+    },
+    {
+      "name": ".",
+      "desc": "an htaccess file",
+      "statusCode": 200,
+      "extensions": [
+        "htaccess"
+      ]
+    },
+    {
+      "name": "license",
+      "desc": "a license",
+      "statusCode": 200,
+      "extensions": [
+        ".txt"
+      ]
+    },
+    {
+      "name": "wp",
+      "desc": "listings",
+      "statusCode": 200,
+      "contains": [
+        "Index of"
+      ],
+      "mustHaveText": true,
+      "extensions": [
+        "-admin", "-includes", "-content/uploads",
+        "-content/plugins", "-content/themes"
+      ]
+    },
+    {
+      "name": "wp",
+      "desc": "a login page",
+      "statusCode": 200,
+      "extensions": [
+        "-login"
+      ]
+    },
+    {
+      "name": "readme",
+      "desc": "a README",
+      "statusCode": 200,
+      "extensions": [
+        ".html"
+      ]
+    },
+    {
+      "name": "robots",
+      "desc": "a robots file",
+      "statusCode": 200,
+      "extensions": [
+        ".txt"
+      ]
+    },
+    {
+      "name": "sitemap",
+      "desc": "a sitemap",
+      "statusCode": 200,
+      "extensions": [
+        ".xml"
+      ]
+    },
+    {
+      "name": "wp",
+      "desc": "a version",
+      "statusCode": 200,
+      "contains": [
+        "WordPress"
+      ],
+      "mustHaveText": true,
+      "extensions": [
+        "-links-opml.php"
+      ]
+    },
+    {
+      "name": "feed",
+      "desc": "a version",
+      "statusCode": 200,
+      "contains": [
+        "WordPress"
+      ],
+      "mustHaveText": true,
+      "extensions": [
+        "", "/atom", "/rdf"
+      ]
+    },
+    {
+      "name": "comments",
+      "desc": "a version",
+      "statusCode": 200,
+      "contains": [
+        "WordPress"
+      ],
+      "mustHaveText": true,
+      "extensions": [
+        "/feed"
+      ]
+    },
+    {
+      "name": "readme",
+      "desc": "a version",
+      "statusCode": 200,
+      "contains": [
+        "WordPress"
+      ],
+      "extensions": [
+        ".html"
+      ]
+    },
+    {
+      "name": "xmlrpc",
+      "desc": "an xmlrpc file",
+      "statusCode": 405,
+      "extensions": [
+        ".php"
+      ]
+    },
+    {
+      "name": "",
+      "desc": "plugins",
+      "capture": "/wp-content/plugins/(.+?)/",
+      "extensions": [
+        ""
+      ]
+    }
+  ]
+}
