@@ -3,6 +3,7 @@ package pwn
 
 import khttp.get
 import khttp.responses.Response
+import com.andreapivetta.kolor.*
 import com.beust.klaxon.*
 import mu.*
 import org.json.JSONArray
@@ -55,7 +56,9 @@ class Pwnr(url: String) {
       if (this.captured.containsKey(desc))
         return true
       this.captured[desc] = matches?.map { match: MatchResult ->
-        match.groups.get(1)?.value
+        match.groups.map { g: MatchGroup? ->
+          g?.value
+        }.drop(1).joinToString(": ") as String?
       }?.distinct()?.toMutableList()
       return true
     }
@@ -67,7 +70,19 @@ class Pwnr(url: String) {
     expectedCode = it.int("statusCode") ?: resp.statusCode
     headers = this.captured["headers"]?.union(resp.headers.map {
       t: Map.Entry<String, String> ->
-        "${t.key}=${t.value}"
+        """
+        |${
+          Kolor.foreground(
+            "${t.key}",
+            Color.BLUE
+          )
+        }=${
+          Kolor.foreground(
+            "${t.value}",
+            Color.RED
+          )
+        }
+        """.trimMargin("|")
     }.distinct())?.toMutableList()
     this.captured["headers"] = headers
     return resp.statusCode.equals(expectedCode)
@@ -93,21 +108,50 @@ class Pwnr(url: String) {
 
   fun vulnerabilities() {
     val version: String?
-    val resp: Response
+    /*val resp: Response*/
     val vulns: JSONArray
     version = this.captured.get("version")?.get(0)!!
-    resp = get(this.config.string("wpvulndb") + version.replace(".", ""))
-    vulns = resp.jsonObject.getJSONObject(version).getJSONArray("vulnerabilities")
+    /*resp = get(this.config.string("wpvulndb") + version.replace(".", ""))
+    vulns = resp.jsonObject.getJSONObject(version).getJSONArray("vulnerabilities")*/
+    vulns = JSONObject("""
+      {
+        "4.7.5": {
+          "vulnerabilities": [
+            {
+              "updated_at": "2017-05-23T08:26:43.000Z",
+              "references": {"cve":["2017-8295"],
+                "url": [
+                  "https://exploitbox.io/vuln/WordPress-Exploit-4-7-Unauth-Password-Reset-0day-CVE-2017-8295.html",
+                  "http://blog.dewhurstsecurity.com/2017/05/04/exploitbox-wordpress-security-advisories.html"
+                ]
+              },
+              "vuln_type": "UNKNOWN",
+              "created_at": "2017-05-05T09:47:44.000Z",
+              "fixed_in": null,
+              "id": 8807,
+              "title": "WordPress 2.3-4.7.5 - Host Header Injection in Password Reset",
+              "published_date":"2017-05-03T00:00:00.000Z"
+            }
+          ]
+        }
+      }
+    """.trim()).getJSONObject(version).getJSONArray("vulnerabilities")
     for (vuln: Any in vulns) {
       if (vuln is JSONObject) {
         this.captured["vulnerabilities"]?.add(
           """
           |==============
-          |CVE: ${vuln.getJSONObject("references").getJSONArray("cve").get(0)}
+          |CVE: ${Kolor.foreground(
+            vuln.getJSONObject("references").getJSONArray("cve").get(0) as String,
+            Color.GREEN
+           )}
           |==============
-          |${vuln.getString("title")}
+          |${Kolor.foreground(vuln.getString("title"), Color.BLUE)}
           |Find more details here:
-          |${vuln.getJSONObject("references").getJSONArray("url").join("\n|")}
+          |${Kolor.foreground(
+              vuln.getJSONObject("references").getJSONArray("url").join("\n"),
+              Color.RED
+           )}
           |
           """.trimMargin("|"))
       }
@@ -134,7 +178,15 @@ class Pwnr(url: String) {
         normal = this.returnedNormally(resource, resp) and
                  this.looksNormal(resource, resp)
         when (normal) { true ->
-          this.logger.info("interesting url: ${resp.url}")
+          this.logger.info(
+            """
+            |${
+              Kolor.foreground("interesting url", Color.BLUE)
+            }: ${
+              Kolor.foreground(resp.url, Color.RED)
+            }
+            """.trimMargin("|")
+          )
         }
       }
     }

@@ -38,5 +38,7 @@ allprojects {
     compile "org.slf4j:slf4j-api:1.7.9"
     compile "org.slf4j:slf4j-simple:1.7.9"
     compile "io.github.microutils:kotlin-logging:1.4.5"
+    // kolor
+    compile "com.andreapivetta.kolor:kolor:0.0.2"
   }
 }
