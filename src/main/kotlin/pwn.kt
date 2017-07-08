@@ -109,7 +109,7 @@ class Pwnr(url: String) {
           |Find more details here:
           |${vuln.getJSONObject("references").getJSONArray("url").join("\n|")}
           |
-          """.trimIndent().trimMargin("|"))
+          """.trimMargin("|"))
       }
     }
   }
