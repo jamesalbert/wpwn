@@ -59,10 +59,15 @@ class Pwnr(url: String) {
 
   fun returnedNormally(it: JsonObject, resp: Response): Boolean {
     val expectedCode: Int
+    val headers: List<String?>?
     expectedCode = it.int("statusCode") ?: resp.statusCode
-    this.captured["headers"] = resp.headers.map { t: Map.Entry<String, String> ->
-      "\n${t.key}=${t.value}"
-    }.toList()
+    if (!this.captured.containsKey("headers"))
+      this.captured["headers"] = emptyList<String>()
+    headers = this.captured["headers"]?.union(resp.headers.map {
+      t: Map.Entry<String, String> ->
+        "\n${t.key}=${t.value}"
+    }.distinct())?.toList()
+    this.captured["headers"] = headers
     return resp.statusCode.equals(expectedCode)
   }
 
