@@ -5,18 +5,22 @@ import khttp.get
 import khttp.responses.Response
 import com.beust.klaxon.*
 import mu.*
+import org.json.JSONArray
+import org.json.JSONObject
 
 
 class Pwnr(url: String) {
   val url: String
   val logger: KLogger
   val config: JsonObject
-  val captured: MutableMap<String, List<String?>?>
+  val captured: MutableMap<String, MutableList<String?>?>
 
   init {
     this.url = url
     this.config = Parser().parse("config/defaults.json") as JsonObject
     this.captured = mutableMapOf()
+    this.captured["headers"] = mutableListOf<String?>()
+    this.captured["vulnerabilities"] = mutableListOf<String?>()
     this.logger = KotlinLogging.logger {}
     println("""
         ___ ._______          ___ .______
@@ -52,7 +56,7 @@ class Pwnr(url: String) {
         return true
       this.captured[desc] = matches?.map { match: MatchResult ->
         match.groups.get(1)?.value
-      }?.toList()?.distinct()
+      }?.distinct()?.toMutableList()
       return true
     }
   }
@@ -61,12 +65,10 @@ class Pwnr(url: String) {
     val expectedCode: Int
     val headers: List<String?>?
     expectedCode = it.int("statusCode") ?: resp.statusCode
-    if (!this.captured.containsKey("headers"))
-      this.captured["headers"] = emptyList<String>()
     headers = this.captured["headers"]?.union(resp.headers.map {
       t: Map.Entry<String, String> ->
-        "\n${t.key}=${t.value}"
-    }.distinct())?.toList()
+        "${t.key}=${t.value}"
+    }.distinct())?.toMutableList()
     this.captured["headers"] = headers
     return resp.statusCode.equals(expectedCode)
   }
@@ -87,6 +89,29 @@ class Pwnr(url: String) {
     if (resp.url.contains("redirect_to"))
       return false
     return true
+  }
+
+  fun vulnerabilities() {
+    val version: String?
+    val resp: Response
+    val vulns: JSONArray
+    version = this.captured.get("version")?.get(0)!!
+    resp = get(this.config.string("wpvulndb") + version.replace(".", ""))
+    vulns = resp.jsonObject.getJSONObject(version).getJSONArray("vulnerabilities")
+    for (vuln: Any in vulns) {
+      if (vuln is JSONObject) {
+        this.captured["vulnerabilities"]?.add(
+          """
+          |==============
+          |CVE: ${vuln.getJSONObject("references").getJSONArray("cve").get(0)}
+          |==============
+          |${vuln.getString("title")}
+          |Find more details here:
+          |${vuln.getJSONObject("references").getJSONArray("url").join("\n|")}
+          |
+          """.trimIndent().trimMargin("|"))
+      }
+    }
   }
 
   fun pwn() {
@@ -113,6 +138,7 @@ class Pwnr(url: String) {
         }
       }
     }
+    this.vulnerabilities()
   }
 }
 
@@ -121,6 +147,6 @@ fun main(vararg args: String) {
   var pwnr = Pwnr(url)
   pwnr.pwn()
   pwnr.captured.forEach { k: String, v: List<String?>? ->
-    pwnr.logger.info("captured $k: ${v?.joinToString(", ")}")
+    pwnr.logger.info("captured $k: ${"\n" + v?.joinToString("\n")}")
   }
 }
