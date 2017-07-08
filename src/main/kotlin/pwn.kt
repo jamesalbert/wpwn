@@ -58,7 +58,11 @@ class Pwnr(url: String) {
   }
 
   fun returnedNormally(it: JsonObject, resp: Response): Boolean {
-    val expectedCode: Int = it.int("statusCode") ?: resp.statusCode
+    val expectedCode: Int
+    expectedCode = it.int("statusCode") ?: resp.statusCode
+    this.captured["headers"] = resp.headers.map { t: Map.Entry<String, String> ->
+      "\n${t.key}=${t.value}"
+    }.toList()
     return resp.statusCode.equals(expectedCode)
   }
 
@@ -112,6 +116,6 @@ fun main(vararg args: String) {
   var pwnr = Pwnr(url)
   pwnr.pwn()
   pwnr.captured.forEach { k: String, v: List<String?>? ->
-    println("captured $k: ${v?.joinToString(", ")}")
+    pwnr.logger.info("captured $k: ${v?.joinToString(", ")}")
   }
 }
