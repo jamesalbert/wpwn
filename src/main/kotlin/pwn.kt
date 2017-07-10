@@ -1,6 +1,7 @@
 package pwn
 
 
+import kotlin.system.exitProcess
 import khttp.get
 import khttp.responses.Response
 import com.andreapivetta.kolor.*
@@ -136,6 +137,10 @@ class Pwnr(url: String) {
     var path: String
     var normal: Boolean
     var resp: Response
+    if (this.request("/wp-login.php").statusCode != 200) {
+      this.logger.error("${this.url} does not appear to be up")
+      exitProcess(1)
+    }
     resources = this.config.array("resources")
     resources?.forEach { resource: JsonObject ->
       name = resource.string("name")!!
