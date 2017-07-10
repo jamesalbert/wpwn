@@ -129,43 +129,47 @@ class Pwnr(url: String) {
     }
   }
 
-  fun pwn() {
-    val resources: JsonArray<JsonObject>?
-    var extensions: JsonArray<String>?
+  fun check(resource: JsonObject, ext: String) {
     var name: String
     var desc: String
-    var path: String
-    var normal: Boolean
-    var resp: Response
+    val resp: Response
+    val normal: Boolean
+    name = resource.string("name")!!
+    desc = resource.string("desc")!!
+    resp = this.request("/$name$ext")
+    normal = this.returnedNormally(resource, resp) and
+             this.looksNormal(resource, resp)
+    this.logger.info("looking for $desc at /$name$ext")
+    when (normal) { true ->
+      this.logger.info(
+        """
+        |${
+          Kolor.foreground("interesting url", Color.BLUE)
+        }: ${
+          Kolor.foreground(resp.url, Color.RED)
+        }
+        """.trimMargin("|")
+      )
+    }
+  }
+
+  fun pwn() {
+    val resources: JsonArray<JsonObject>?
+    val version: String
+    var extensions: JsonArray<String>?
     if (this.request("/wp-login.php").statusCode != 200) {
       this.logger.error("${this.url} does not appear to be up")
       exitProcess(1)
     }
     resources = this.config.array("resources")
     resources?.forEach { resource: JsonObject ->
-      name = resource.string("name")!!
-      desc = resource.string("desc")!!
-      path = "/$name"
       extensions = resource.array("extensions")
       extensions?.forEach { ext ->
-        this.logger.info("looking for ${desc} at ${path+ext}")
-        resp = this.request(path + ext)
-        normal = this.returnedNormally(resource, resp) and
-                 this.looksNormal(resource, resp)
-        when (normal) { true ->
-          this.logger.info(
-            """
-            |${
-              Kolor.foreground("interesting url", Color.BLUE)
-            }: ${
-              Kolor.foreground(resp.url, Color.RED)
-            }
-            """.trimMargin("|")
-          )
-        }
+        check(resource, ext)
       }
     }
-    this.vulnerabilities("wordpresses", this.captured.get("version")?.get(0)!!)
+    version = this.captured.get("version")?.get(0)!!
+    this.vulnerabilities("wordpresses", version)
     this.captured.get("plugins")?.forEach {
       val plugin: String
       plugin = it?.split(":")?.first()!!
