@@ -106,45 +106,15 @@ class Pwnr(url: String) {
     return true
   }
 
-  fun vulnerabilities() {
-    val version: String?
-    /*val resp: Response*/
+  fun vulnerabilities(type: String, id: String) {
+    val resp: Response
     val vulns: JSONArray
-    version = this.captured.get("version")?.get(0)!!
-    /*resp = get(this.config.string("wpvulndb") + version.replace(".", ""))
-    vulns = resp.jsonObject.getJSONObject(version).getJSONArray("vulnerabilities")*/
-    vulns = JSONObject("""
-      {
-        "4.7.5": {
-          "vulnerabilities": [
-            {
-              "updated_at": "2017-05-23T08:26:43.000Z",
-              "references": {"cve":["2017-8295"],
-                "url": [
-                  "https://exploitbox.io/vuln/WordPress-Exploit-4-7-Unauth-Password-Reset-0day-CVE-2017-8295.html",
-                  "http://blog.dewhurstsecurity.com/2017/05/04/exploitbox-wordpress-security-advisories.html"
-                ]
-              },
-              "vuln_type": "UNKNOWN",
-              "created_at": "2017-05-05T09:47:44.000Z",
-              "fixed_in": null,
-              "id": 8807,
-              "title": "WordPress 2.3-4.7.5 - Host Header Injection in Password Reset",
-              "published_date":"2017-05-03T00:00:00.000Z"
-            }
-          ]
-        }
-      }
-    """.trim()).getJSONObject(version).getJSONArray("vulnerabilities")
+    resp = get("${this.config.string("wpvulndb")}/$type/${id.replace(".", "")}")
+    vulns = resp.jsonObject.getJSONObject(id).getJSONArray("vulnerabilities")
     for (vuln: Any in vulns) {
       if (vuln is JSONObject) {
         this.captured["vulnerabilities"]?.add(
           """
-          |==============
-          |CVE: ${Kolor.foreground(
-            vuln.getJSONObject("references").getJSONArray("cve").get(0) as String,
-            Color.GREEN
-           )}
           |==============
           |${Kolor.foreground(vuln.getString("title"), Color.BLUE)}
           |Find more details here:
@@ -190,7 +160,12 @@ class Pwnr(url: String) {
         }
       }
     }
-    this.vulnerabilities()
+    this.vulnerabilities("wordpresses", this.captured.get("version")?.get(0)!!)
+    this.captured.get("plugins")?.forEach {
+      val plugin: String
+      plugin = it?.split(":")?.first()!!
+      this.vulnerabilities("plugins", plugin)
+    }
   }
 }
 

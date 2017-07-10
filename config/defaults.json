@@ -1,5 +1,5 @@
 {
-  "wpvulndb": "https://wpvulndb.com/api/v2/wordpresses/",
+  "wpvulndb": "https://wpvulndb.com/api/v2",
   "resources": [
     {
       "name": "wp-config",
