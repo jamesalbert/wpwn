@@ -9,7 +9,7 @@ check out the [kanban](https://github.com/jamesalbert/wpwn/projects/1)
 
 ## Getting Started
 
-wpwn is not even in alpha stage yet. Only detection of certain routes with certain characteristics is implemented so far. To try it out:
+wpwn is not even in alpha stage yet. To try it out:
 
 ```sh
 # install sdkman
