@@ -20,6 +20,8 @@ sdkman i kotlin 1.1.3-2
 sdkman i gradle 4.0
 
 # build and run
+git clone https://github.com/jamesalbert/wpwn.git
+cd wpwn
 ./build.sh
 ./wpwn <url>
 ```
