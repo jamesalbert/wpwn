@@ -5,6 +5,8 @@ pwn your (or your friend's) wordpress
 ![](https://img.shields.io/badge/kotlin%20version-1.1.3-brightgreen.svg)
 ![](https://img.shields.io/badge/gradle%20version-4.0-brightgreen.svg)
 
+check out the [kanban](https://github.com/jamesalbert/wpwn/projects/1)
+
 ## Getting Started
 
 wpwn is not even in alpha stage yet. Only detection of certain routes with certain characteristics is implemented so far. To try it out:
