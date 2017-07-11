@@ -11,21 +11,14 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 
-class Pwnr(url: String) {
-  val url: String
-  val logger: KLogger
-  val config: JsonObject
-  val captured: MutableMap<String, MutableList<String?>?>
+class Pwnr(val url: String) {
+  val logger = KotlinLogging.logger {}
+  val config = Parser().parse("config/defaults.json") as JsonObject
+  val captured = mutableMapOf<String, MutableList<String>>("headers" to mutableListOf(), "vulnerabilities" to mutableListOf())
 
   init {
-    this.url = url
-    this.config = Parser().parse("config/defaults.json") as JsonObject
-    this.captured = mutableMapOf()
-    this.captured["headers"] = mutableListOf<String?>()
-    this.captured["vulnerabilities"] = mutableListOf<String?>()
-    this.logger = KotlinLogging.logger {}
     println("""
-        ___ ._______          ___ .______
+             ___ ._______          ___ .______
     .___    |   |: ____  |.___    |   |:      \
     :   | /\|   ||    :  |:   | /\|   ||       |
     |   |/  :   ||   |___||   |/  :   ||   |   |
@@ -37,152 +30,100 @@ class Pwnr(url: String) {
     Author: James Albert (jamesalbert)
     Message to the world: hello
     """)
-    this.logger.info("prepare to pwn: $url")
+    logger.info("prepare to pwn: $url")
   }
 
-  fun request(path: String): Response {
-    return get("${this.url}$path")
-  }
+  fun request(path: String): Response = get("$url$path")
 
   fun isCaptured(it: JsonObject, resp: Response): Boolean {
-    val capture: JsonArray<String>?
-    val desc: String
-    capture = it.array("capture") ?: JsonArray()
-    desc = it.string("desc")!!
-    return capture.isNotEmpty() and capture.any { c: String ->
-      val regex: Regex = c.toRegex()
-      val matches: Sequence<MatchResult>? = regex.findAll(resp.text)
-      if (matches?.count() == 0)
-        return false
-      if (this.captured.containsKey(desc))
-        return true
-      this.captured[desc] = matches?.map { match: MatchResult ->
-        match.groups.map { g: MatchGroup? ->
-          g?.value
-        }.drop(1).joinToString(": ") as String?
-      }?.distinct()?.toMutableList()
+    val desc: String = it.string("desc")!!
+    if (desc in captured)
       return true
+    it.array("capture")?.foreach { c: String ->
+      val matches: Sequence<MatchResult> = c.toRegex().findAll(resp.text)
+      if (matches.any()) {
+        captured[desc] = matches.map { match: MatchResult ->
+          match.groups.map { it?.value }.drop(1).joinToString(": ")
+        }.distinct().toMutableList()
+        return true
+      }
     }
+    return false
   }
 
   fun returnedNormally(it: JsonObject, resp: Response): Boolean {
-    val expectedCode: Int
-    val headers: List<String?>?
-    expectedCode = it.int("statusCode") ?: resp.statusCode
-    headers = this.captured["headers"]?.union(resp.headers.map {
-      t: Map.Entry<String, String> ->
-        """
-        |${
-          Kolor.foreground(
-            "${t.key}",
-            Color.BLUE
-          )
-        }=${
-          Kolor.foreground(
-            "${t.value}",
-            Color.RED
-          )
-        }
-        """.trimMargin("|")
-    }.distinct())?.toMutableList()
-    this.captured["headers"] = headers
-    return resp.statusCode.equals(expectedCode)
+    val expectedCode = it.int("statusCode") ?: resp.statusCode
+    captured["headers"] = (captured["headers"] ?: mutableListOf()).union(resp.headers.map {
+      (key, value): Map.Entry<String, String> -> key.blue() + "=" + value.red()
+    }).toMutableList()
+    return resp.statusCode == expectedCode
   }
 
   fun looksNormal(it: JsonObject, resp: Response): Boolean {
-    val mustHaveText: Boolean
-    val substrings: JsonArray<String>?
-    mustHaveText = it.boolean("mustHaveText") ?: false
-    substrings = it.array("contains") ?: JsonArray()
+    val mustHaveText = it.boolean("mustHaveText") ?: false
+    val substrings = it.array("contains") ?: JsonArray()
     if (mustHaveText and resp.text.isEmpty())
       return false
-    if (substrings.isNotEmpty() and !substrings.any { s ->
-      resp.text.contains(s)
-    })
+    if (substrings.isNotEmpty() and substrings.none { it in resp.text })
       return false
-    if (!this.isCaptured(it, resp))
+    if (!isCaptured(it, resp))
       return false
-    if (resp.url.contains("redirect_to"))
+    if ("redirect_to" in resp.url)
       return false
     return true
   }
 
   fun vulnerabilities(type: String, id: String) {
-    val resp: Response
-    val vulns: JSONArray
-    resp = get("${this.config.string("wpvulndb")}/$type/${id.replace(".", "")}")
-    vulns = resp.jsonObject.getJSONObject(id).getJSONArray("vulnerabilities")
+    val resp = get("${this.config.string("wpvulndb")}/$type/${id.replace(".", "")}")
+    val vulns = resp.jsonObject.getJSONObject(id).getJSONArray("vulnerabilities")
     for (vuln: Any in vulns) {
       if (vuln is JSONObject) {
-        this.captured["vulnerabilities"]?.add(
-          """
-          |==============
-          |${Kolor.foreground(vuln.getString("title"), Color.BLUE)}
-          |Find more details here:
-          |${Kolor.foreground(
-              vuln.getJSONObject("references").getJSONArray("url").join("\n"),
-              Color.RED
-           )}
-          |
-          """.trimMargin("|"))
+        captured["vulnerabilities"]?.add(
+            """
+      |==============
+      |${vuln.getString("title").blue()}
+      |Find more details here:
+      |${vuln.getJSONObject("references").getJSONArray("url").join("\n").red()}
+      |
+      """.trimMargin("|"))
       }
     }
   }
 
   fun check(resource: JsonObject, ext: String) {
-    var name: String
-    var desc: String
-    val resp: Response
-    val normal: Boolean
-    name = resource.string("name")!!
-    desc = resource.string("desc")!!
-    resp = this.request("/$name$ext")
-    normal = this.returnedNormally(resource, resp) and
-             this.looksNormal(resource, resp)
-    this.logger.info("looking for $desc at /$name$ext")
-    when (normal) { true ->
-      this.logger.info(
-        """
-        |${
-          Kolor.foreground("interesting url", Color.BLUE)
-        }: ${
-          Kolor.foreground(resp.url, Color.RED)
-        }
-        """.trimMargin("|")
-      )
-    }
+    val name = resource.string("name")!!
+    val desc = resource.string("desc")!!
+    val resp = request("/$name$ext")
+    val normal = this.returnedNormally(resource, resp) and
+        this.looksNormal(resource, resp)
+    logger.info("looking for $desc at /$name$ext")
+    if (normal)
+      logger.info("${"interesting url".blue()}: ${resp.url.red()}")
   }
 
   fun pwn() {
-    val resources: JsonArray<JsonObject>?
-    val version: String
-    var extensions: JsonArray<String>?
-    if (this.request("/wp-login.php").statusCode != 200) {
-      this.logger.error("${this.url} does not appear to be up")
+    if (request("/wp-login.php").statusCode != 200) {
+      logger.error("$url does not appear to be up")
       exitProcess(1)
     }
-    resources = this.config.array("resources")
-    resources?.forEach { resource: JsonObject ->
-      extensions = resource.array("extensions")
-      extensions?.forEach { ext ->
+    config.array("resources")?.forEach { resource: JsonObject ->
+      resource.array("extensions")?.forEach { ext ->
         check(resource, ext)
       }
     }
-    version = this.captured.get("version")?.get(0)!!
-    this.vulnerabilities("wordpresses", version)
-    this.captured.get("plugins")?.forEach {
-      val plugin: String
-      plugin = it?.split(":")?.first()!!
-      this.vulnerabilities("plugins", plugin)
+    val version = captured["version"]?.get(0)!!
+    vulnerabilities("wordpresses", version)
+    captured["plugins"]?.forEach {
+      vulnerabilities("plugins", it.split(":").first())
     }
   }
 }
 
 fun main(vararg args: String) {
-  val url: String = args[0]
-  var pwnr = Pwnr(url)
+  val url = args[0]
+  val pwnr = Pwnr(url)
   pwnr.pwn()
-  pwnr.captured.forEach { k: String, v: List<String?>? ->
-    pwnr.logger.info("captured $k: ${"\n" + v?.joinToString("\n")}")
+  pwnr.captured.forEach { k: String, v: List<String> ->
+    pwnr.logger.info("captured $k: \n${v.joinToString("\n")}")
   }
 }
